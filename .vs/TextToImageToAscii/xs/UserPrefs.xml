@@ -1,0 +1,19 @@
+﻿<Properties StartupConfiguration="{73174038-4712-42AB-9334-D0F960363C34}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="TextToImageToAscii/app.config">
+    <Files>
+      <File FileName="TextToImageToAscii/Program.cs" Line="113" Column="26" />
+      <File FileName="TextToImageToAscii/BingSearch.cs" Line="49" Column="23" />
+      <File FileName="TextToImageToAscii/app.config" Line="1" Column="1" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.ItemProperties.TextToImageToAscii PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches>
+    <Watch file="../../../TextToImageToAscii/Program.cs" line="72" offsetX="366" offsetY="1420" expression="bitmap2" liveUpdate="False" />
+    <Watch file="../../../TextToImageToAscii/Program.cs" line="23" offsetX="869" offsetY="484" expression="imageByteArray" liveUpdate="False" />
+  </MonoDevelop.Ide.DebuggingService.PinnedWatches>
+  <MultiItemStartupConfigurations />
+</Properties>
