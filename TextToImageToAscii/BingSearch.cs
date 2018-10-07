@@ -6,9 +6,6 @@ using System.Net.Http;
 
 namespace TextToImageToAscii
 {
-	/// <summary>
-	/// Source: https://docs.microsoft.com/en-us/azure/cognitive-services/bing-image-search/quickstarts/csharp
-	/// </summary>
 	public class BingSearch
     {
         private string SubscriptionKey { get; set; }
@@ -33,7 +30,6 @@ namespace TextToImageToAscii
 			if (string.IsNullOrWhiteSpace(searchTerm)) return null;
 
             //Construct the URI of the search request
-            //https://docs.microsoft.com/en-us/rest/api/cognitiveservices/bing-images-api-v7-reference#query-parameters
             var uriQuery = UriBase + "?count=1&offset=0" +    
                 (height.HasValue ? $"&height={height}" : "") +                          
                 $"&aspect={aspectRatio}" +				                    
