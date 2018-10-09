@@ -34,14 +34,11 @@ namespace TextToImageToAscii
 			//Set console title
 			Console.Title = "Imposter Syndrome: Text to ASCII";
 
-			//Set console to black (terminal on Mac displays white)
-			Console.BackgroundColor = ConsoleColor.Black;
+			//initialize console colors
+			InitializeConsoleColors();
 
 			//Clear console to fill entire screen
 			Console.Clear();
-
-			//Set text to mustard yellow
-			Console.ForegroundColor = ConsoleColor.DarkYellow;
 
 			//Get the handle for the console window using WinApi
 			IntPtr ptr = GetConsoleWindow();
@@ -57,6 +54,15 @@ namespace TextToImageToAscii
 			//Set global Image Height in pixels
 			var consoleBuffer = 2;
 			ImageHeightInPixels = height - consoleBuffer;
+		}
+
+		private static void InitializeConsoleColors()
+		{
+			//Set console to black (terminal on Mac displays white)
+			Console.BackgroundColor = ConsoleColor.Black;
+
+			//Set text to mustard yellow
+			Console.ForegroundColor = ConsoleColor.DarkYellow;
 		}
 
 		private static void ConvertNamedObjectToConsoleArt()
@@ -75,7 +81,7 @@ namespace TextToImageToAscii
 				if (imageByteArray == null) throw new ApplicationException("Image not found.");
 
 				//display image to console
-				DisplayImageToConsole(imageByteArray);
+				DisplayImageToConsole(imageByteArray, ImageHeightInPixels);
 
 				//prompt user to try again
 				PromptUserToTryAgain();
@@ -100,10 +106,6 @@ namespace TextToImageToAscii
 
 		private static void PromptUserToTryAgain()
 		{
-			//reset foreground/background colors
-			Console.BackgroundColor = ConsoleColor.Black;
-			Console.ForegroundColor = ConsoleColor.DarkYellow;
-
 			//instruct user to hit key
 			Console.Write("Hit any key to try again.");
 			var key = Console.ReadKey();
@@ -145,82 +147,52 @@ namespace TextToImageToAscii
 			}
 		}
 
-		private static void DisplayImageToConsole(byte[] imageByteArray)
+		private static void DisplayImageToConsole(byte[] imageByteArray, int resizedImageHeight)
 		{
+			//clear screen
+			Console.Clear();
+
 			//note: MUST keep memory stream active while working with image
 			using (var ms = new MemoryStream(imageByteArray))
 			{
 				//convert byte-array to image
-				var source = new Bitmap(ms);
+				var sourceImage = new Bitmap(ms);
 
-				//clear screen
-				Console.Clear();
+				//calculate amount to resize image
+				var percent = decimal.Divide(resizedImageHeight, sourceImage.Height);
 
-				//set image height
-				int sMax = ImageHeightInPixels;
+				//recalculate image size and store as struct
+				Size recalculatedImageSize = new Size((int)(sourceImage.Width * percent), (int)(sourceImage.Height * percent));
 
-				decimal percent = Math.Min(decimal.Divide(sMax, source.Width), decimal.Divide(sMax, source.Height));
-				Size dSize = new Size((int)(source.Width * percent), (int)(source.Height * percent));
-				Bitmap bmpMax = new Bitmap(source, dSize.Width * 2, dSize.Height);
-				for (int i = 0; i < dSize.Height; i++)
+				//create resized image; width is doubled because console characters are rectangular
+				Bitmap resizedImage = new Bitmap(sourceImage, recalculatedImageSize.Width * 2, recalculatedImageSize.Height);
+
+				//todo: can we dispose of the memory stream here?
+
+				//loop through rows of image pixels
+				for (int row = 0; row < recalculatedImageSize.Height; row++)
 				{
-					for (int j = 0; j < dSize.Width; j++)
+					//loop through columns of image pixels
+					for (int column = 0; column < recalculatedImageSize.Width; column++)
 					{
-						WritePixelToConsole(bmpMax.GetPixel(j * 2, i));
-						WritePixelToConsole(bmpMax.GetPixel(j * 2 + 1, i));
+						//write pixel to console (in pairs, to account for rectangular character space)
+						WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel(column * 2, row)));
+						WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel((column * 2) + 1, row)));
 					}
-					System.Console.WriteLine();
+					//wrap to next line
+					Console.WriteLine();
 				}
-				Console.ResetColor();
 			}
+
+			//reset console colors
+			InitializeConsoleColors();
 		}
 
-		private static void WritePixelToConsole(Color cValue)
+		private static void WritePixelToConsole((ConsoleColor foregroundColor, ConsoleColor backgroundColor, char consoleCharacter) pixel)
 		{
-			//initialize array of 32-bit ARGB value
-			int[] argbValues = { 0x000000, 0x000080, 0x008000, 0x008080, 0x800000, 0x800080, 0x808000, 0xC0C0C0, 0x808080, 0x0000FF, 0x00FF00, 0x00FFFF, 0xFF0000, 0xFF00FF, 0xFFFF00, 0xFFFFFF };
-
-			//project argb values into array of system color values
-			Color[] colorValues = argbValues.Select(argbValue => Color.FromArgb(argbValue)).ToArray();
-
-			//initialize list of console "shade" characters
-			char[] shadeSymbols = new char[] {
-				(char)9617, //1/4
-				(char)9618, //2/4
-				(char)9619, //3/4
-				(char)9608  //4/4
-			};
-
-			int[] bestHit = new int[] { 0, 0, 4, int.MaxValue }; //ForeColor, BackColor, Symbol, Score
-
-			for (int shadeSymbol = shadeSymbols.Length; shadeSymbol > 0; shadeSymbol--)
-			{
-				for (int foregroundColor = 0; foregroundColor < colorValues.Length; foregroundColor++)
-				{
-					for (int backgroundColor = 0; backgroundColor < colorValues.Length; backgroundColor++)
-					{
-						int R = (colorValues[foregroundColor].R * shadeSymbol + colorValues[backgroundColor].R * (shadeSymbols.Length - shadeSymbol)) / shadeSymbols.Length;
-						int G = (colorValues[foregroundColor].G * shadeSymbol + colorValues[backgroundColor].G * (shadeSymbols.Length - shadeSymbol)) / shadeSymbols.Length;
-						int B = (colorValues[foregroundColor].B * shadeSymbol + colorValues[backgroundColor].B * (shadeSymbols.Length - shadeSymbol)) / shadeSymbols.Length;
-						int score = (cValue.R - R) * (cValue.R - R) + (cValue.G - G) * (cValue.G - G) + (cValue.B - B) * (cValue.B - B);
-
-						if (!(shadeSymbol > 1 && shadeSymbol < 4 && score > 50000)) // rule out too weird combinations
-						{
-							if (score < bestHit[3])
-							{
-								bestHit[3] = score; //Score
-								bestHit[0] = foregroundColor;  //ForeColor
-								bestHit[1] = backgroundColor;  //BackColor
-								bestHit[2] = shadeSymbol;  //Symbol
-							}
-						}
-					}
-				}
-			}
-
-			Console.ForegroundColor = (ConsoleColor)bestHit[0];
-			Console.BackgroundColor = (ConsoleColor)bestHit[1];
-			Console.Write(shadeSymbols[bestHit[2] - 1]);
+			Console.ForegroundColor = pixel.foregroundColor;
+			Console.BackgroundColor = pixel.backgroundColor;
+			Console.Write(pixel.consoleCharacter);
 		}
 	}
 }
