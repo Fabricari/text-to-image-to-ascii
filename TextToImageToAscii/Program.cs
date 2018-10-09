@@ -128,8 +128,8 @@ namespace TextToImageToAscii
 			//get url of image from text using Bing Search API
 			return new BingSearch(subscriptionKey, uriBase)
 				.GetImageUrl(userText,
-							 imageSize: ImageSize.Small,
-							 aspectRatio: AspectRatio.Square);
+							 imageSize: ImageSize.Medium,
+							 aspectRatio: AspectRatio.Wide);
 		}
 
 		private static Byte[] GetImageByteArrayFromUrl(string imageUrl)
