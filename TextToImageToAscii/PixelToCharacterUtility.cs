@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
@@ -35,6 +36,9 @@ namespace TextToImageToAscii
 			(char)9608	//4/4
 		};
 
+		//character cache
+		private static Dictionary<int, (ConsoleColor foregroundColor, ConsoleColor backgroundColor, char consoleCharacter)> CharacterCache = new Dictionary<int, (ConsoleColor foregroundColor, ConsoleColor backgroundColor, char consoleCharacter)>();
+
 		//argb values projected into array of system color values
 		private static Color[] _colors;
 		private static Color[] ColorValues =>
@@ -42,6 +46,10 @@ namespace TextToImageToAscii
 
 		internal static (ConsoleColor foregroundColor, ConsoleColor backgroundColor, char consoleCharacter) GetCharacterProperties(Color pixelColor)
 		{
+			//check character cache
+			if (CharacterCache.ContainsKey(pixelColor.GetHashCode()))
+				return CharacterCache[pixelColor.GetHashCode()];
+
 			//initialize "rounded" pixel values
 			int[] bestHit = new int[] { 0, 0, 4, int.MaxValue }; //ForeColor, BackColor, Symbol, Score
 
@@ -70,20 +78,26 @@ namespace TextToImageToAscii
 							//if the score is below the threshold of the previous best, then replace
 							if (score < bestHit[3])
 							{
-								bestHit[3] = score;			
+								bestHit[3] = score;
 								bestHit[0] = foregroundColor;
 								bestHit[1] = backgroundColor;
-								bestHit[2] = shadeSymbol;	
+								bestHit[2] = shadeSymbol;
 							}
 						}
 					}
 				}
 			}
 
+			//create tuple
+			var result = (foregroundColor: (ConsoleColor)bestHit[0], 
+				          backgroundColor: (ConsoleColor)bestHit[1], 
+						  consoleCharacter: ShadeSymbols[bestHit[2] - 1]);
+
+			//cache the result
+			CharacterCache.Add(pixelColor.GetHashCode(), result);
+
 			//return tuple of console character attributes
-			return ( foregroundColor: (ConsoleColor)bestHit[0], 
-				     backgroundColor: (ConsoleColor)bestHit[1], 
-				     consoleCharacter: ShadeSymbols[bestHit[2] - 1]);
+			return result;
 		}
 	}
 }

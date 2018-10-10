@@ -152,6 +152,10 @@ namespace TextToImageToAscii
 			//clear screen
 			Console.Clear();
 
+			//initialize local variables
+			Size recalculatedImageSize;
+			Bitmap resizedImage;
+
 			//note: MUST keep memory stream active while working with image
 			using (var ms = new MemoryStream(imageByteArray))
 			{
@@ -162,26 +166,24 @@ namespace TextToImageToAscii
 				var percent = decimal.Divide(resizedImageHeight, sourceImage.Height);
 
 				//recalculate image size and store as struct
-				Size recalculatedImageSize = new Size((int)(sourceImage.Width * percent), (int)(sourceImage.Height * percent));
+				recalculatedImageSize = new Size((int)(sourceImage.Width * percent), (int)(sourceImage.Height * percent));
 
 				//create resized image; width is doubled because console characters are rectangular
-				Bitmap resizedImage = new Bitmap(sourceImage, recalculatedImageSize.Width * 2, recalculatedImageSize.Height);
+				resizedImage = new Bitmap(sourceImage, recalculatedImageSize.Width * 2, recalculatedImageSize.Height);
+			}
 
-				//todo: can we dispose of the memory stream here?
-
-				//loop through rows of image pixels
-				for (int row = 0; row < recalculatedImageSize.Height; row++)
+			//loop through rows of image pixels
+			for (int row = 0; row < recalculatedImageSize.Height; row++)
+			{
+				//loop through columns of image pixels
+				for (int column = 0; column < recalculatedImageSize.Width; column++)
 				{
-					//loop through columns of image pixels
-					for (int column = 0; column < recalculatedImageSize.Width; column++)
-					{
-						//write pixel to console (in pairs, to account for rectangular character space)
-						WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel(column * 2, row)));
-						WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel((column * 2) + 1, row)));
-					}
-					//wrap to next line
-					Console.WriteLine();
+					//write pixel to console (in pairs, to account for rectangular character space)
+					WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel(column * 2, row)));
+					WritePixelToConsole(PixelToCharacterUtility.GetCharacterProperties(resizedImage.GetPixel((column * 2) + 1, row)));
 				}
+				//wrap to next line
+				Console.WriteLine();
 			}
 
 			//reset console colors

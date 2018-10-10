@@ -39,8 +39,8 @@ namespace TextToImageToAscii
 				$"&freshness={imageFreshness}" +					
                 $"&q={Uri.EscapeDataString(searchTerm)}";
 
-            //make a RESTful call to Bing...
-            using (var httpClient = new HttpClient())
+			//make a RESTful call to Bing...
+			using (var httpClient = new HttpClient())
             {
 				//add subscription to header
                 httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", SubscriptionKey);
