@@ -6,12 +6,12 @@ using System.Net.Http;
 
 namespace TextToImageToAscii
 {
-	public class BingSearch
+	public class BingImageSearch
     {
         private string SubscriptionKey { get; set; }
         private string UriBase { get; set; }
 
-		public BingSearch(string subscriptionKey, string uriBase)
+		public BingImageSearch(string subscriptionKey, string uriBase)
         {
             SubscriptionKey = subscriptionKey;
             UriBase = uriBase;

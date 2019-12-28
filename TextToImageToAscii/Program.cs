@@ -2,16 +2,17 @@
 using System.Configuration;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 
 namespace TextToImageToAscii
 {
+	/// <summary>
+	/// What is the Bing Image Search API?
+	/// https://docs.microsoft.com/en-us/azure/cognitive-services/Bing-Image-Search/overview
+	/// </summary>
 	class MainClass
 	{
-		static int ImageHeightInPixels = 100;
-
 		//Declare WinApi function to get access to window handles
 		[DllImport("kernel32.dll", SetLastError = true)]
 		static extern IntPtr GetConsoleWindow();
@@ -22,6 +23,9 @@ namespace TextToImageToAscii
 
 		public static void Main(string[] args)
 		{
+			//position console window
+			PositionConsoleWindow();
+
 			//format the console
 			InitializeConsole();
 
@@ -29,39 +33,23 @@ namespace TextToImageToAscii
 			ConvertNamedObjectToConsoleArt();
 		}
 
+		private static void PositionConsoleWindow() => MoveWindow(GetConsoleWindow(), 0, 0, 0, 0, true);
+
+		private static int ImageHeightInPixels => Console.WindowHeight - 1;
+
 		private static void InitializeConsole()
 		{
-			//Set console title
 			Console.Title = "Imposter Syndrome: Text to ASCII";
-
-			//initialize console colors
-			InitializeConsoleColors();
-
-			//Clear console to fill entire screen
+			ResetConsoleColors();
 			Console.Clear();
-
-			//Get the handle for the console window using WinApi
-			IntPtr ptr = GetConsoleWindow();
-
-			//Move the window using WinApi
-			MoveWindow(ptr, 0, 0, 0, 0, true);
-
-			//Reset the cosole window to full size
-			var width = Console.LargestWindowWidth - 3;
-			var height = Console.LargestWindowHeight - 1;
-			Console.SetWindowSize(width, height);
-
-			//Set global Image Height in pixels
-			var consoleBuffer = 2;
-			ImageHeightInPixels = height - consoleBuffer;
+			Console.SetWindowSize(
+				Console.LargestWindowWidth - 3, 
+				Console.LargestWindowHeight - 1);
 		}
 
-		private static void InitializeConsoleColors()
+		private static void ResetConsoleColors()
 		{
-			//Set console to black (terminal on Mac displays white)
 			Console.BackgroundColor = ConsoleColor.Black;
-
-			//Set text to mustard yellow
 			Console.ForegroundColor = ConsoleColor.DarkYellow;
 		}
 
@@ -69,82 +57,57 @@ namespace TextToImageToAscii
 		{
 			try
 			{
-				//get user text
-				var userText = GetUserText();
-
-				//get image URL
-				var imageUrl = GetImageUrl(userText);
-				if (string.IsNullOrWhiteSpace(imageUrl)) throw new ApplicationException("No image URL returned for search.");
-
-				//get byte-array from text
-				var imageByteArray = GetImageByteArrayFromUrl(imageUrl);
-				if (imageByteArray == null) throw new ApplicationException("Image not found.");
-
-				//display image to console
-				DisplayImageToConsole(imageByteArray, ImageHeightInPixels);
-
-				//prompt user to try again
+				DisplayImageToConsole(GetImageByteArrayFromUrl(GetImageUrl(GetImageName())), ImageHeightInPixels);
 				PromptUserToTryAgain();
 			}
 			catch (Exception ex)
 			{
-				//if there is an error, clear the console, alert user, and allow them to try again.
 				Console.Clear();
 				Console.WriteLine($"Oops! There was a problem with that search: {ex.Message}");
 				PromptUserToTryAgain();
 			}
 		}
 
-		private static string GetUserText()
+		private static string GetImageName()
 		{
-			//prompt user to enter name of image to ascii-fy
 			Console.Write("Enter the name of an object to ASCIIify: ");
-
-			//return user-entered text
-			return Console.ReadLine();
+			var imageName = Console.ReadLine();
+			if (string.IsNullOrWhiteSpace(imageName)) throw new Exception("Image name is required.");
+			return imageName;
 		}
 
-		private static void PromptUserToTryAgain()
+		private static string GetImageUrl(string imageName)
 		{
-			//instruct user to hit key
-			Console.Write("Hit any key to try again.");
-			var key = Console.ReadKey();
-
-			//if key is esc, exit program
-			if (key.Key.Equals(ConsoleKey.Escape))
-				Environment.Exit(0);
-
-			//after user hits key, clear screen and repeat
-			Console.Clear();
-			ConvertNamedObjectToConsoleArt();
-		}
-
-		private static string GetImageUrl(string userText)
-		{
-			//get configuration settings
 			var subscriptionKey = ConfigurationManager.AppSettings["BingImageSearch_SubscriptionKey"];
 			var uriBase = ConfigurationManager.AppSettings["BingImageSearch_UriBase"];
-
-			//get url of image from text using Bing Search API
-			return new BingSearch(subscriptionKey, uriBase)
-				.GetImageUrl(userText,
+			var imageUrl = new BingImageSearch(subscriptionKey, uriBase)
+				.GetImageUrl(imageName,
 							 imageSize: ImageSize.Medium,
 							 aspectRatio: AspectRatio.Wide);
+			if (string.IsNullOrWhiteSpace(imageUrl)) throw new Exception("No image URL returned for search.");
+			return imageUrl;
 		}
 
 		private static Byte[] GetImageByteArrayFromUrl(string imageUrl)
 		{
-			using (HttpClient client = new HttpClient())
+			using (var client = new HttpClient())
 			{
-				//make request
 				var response = client.GetAsync(imageUrl).Result;
-
-				//check status or throw exception
-				if (!response.IsSuccessStatusCode) return null;
-
-				//get response as byte-array
-				return response.Content.ReadAsByteArrayAsync().Result;
+				if (!response.IsSuccessStatusCode) throw new Exception("Unable to retrieve image from URL.");
+				var imageByteArray = response.Content.ReadAsByteArrayAsync().Result;
+				if (imageByteArray == null) throw new Exception("Unable to convert image to byte array.");
+				return imageByteArray;
 			}
+		}
+
+		private static void PromptUserToTryAgain()
+		{
+			Console.Write("Hit any key to try again.");
+			var key = Console.ReadKey();
+			if (key.Key.Equals(ConsoleKey.Escape))
+				Environment.Exit(0);
+			Console.Clear();
+			ConvertNamedObjectToConsoleArt();
 		}
 
 		private static void DisplayImageToConsole(byte[] imageByteArray, int resizedImageHeight)
@@ -187,7 +150,7 @@ namespace TextToImageToAscii
 			}
 
 			//reset console colors
-			InitializeConsoleColors();
+			ResetConsoleColors();
 		}
 
 		private static void WritePixelToConsole((ConsoleColor foregroundColor, ConsoleColor backgroundColor, char consoleCharacter) pixel)
